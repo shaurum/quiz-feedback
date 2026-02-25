@@ -241,18 +241,18 @@ function processAllQueue() {
 async function processQueueItem(index) {
   const item = imageQueue[index];
   if (!item) return;
-  
+
   item.status = 'processing';
   renderQueue();
-  
-  showStatus('Обработка изображения...', 'loading');
-  
+
+  showStatus('Обработка через Google Gemini...', 'loading');
+
   try {
     const result = await recognizeText(item.path || item.file);
-    
+
     item.result = result;
     item.status = result.success ? 'completed' : 'error';
-    
+
     if (result.success) {
       fillFormWithData(result);
       formSection.classList.add('active');
@@ -265,10 +265,10 @@ async function processQueueItem(index) {
     item.result = { success: false, error: error.message };
     showStatus('Ошибка распознавания: ' + error.message, 'error');
   }
-  
+
   saveQueueToStorage();
   renderQueue();
-  
+
   // Автоматически переходим к следующему
   const nextPending = imageQueue.findIndex((i, idx) => idx > index && i.status === 'pending');
   if (nextPending !== -1) {
@@ -300,7 +300,7 @@ function fillFormWithData(result) {
 }
 
 async function recognizeText(imagePath) {
-  showStatus('Отправка изображения нейросети...', 'loading');
+  showStatus('Отправка изображения Google Gemini...', 'loading');
 
   try {
     const result = await ipcRenderer.invoke('ocr-recognize', imagePath);

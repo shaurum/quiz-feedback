@@ -6,7 +6,9 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder --mac",
-    "pack": "electron-builder --dir"
+    "pack": "electron-builder --dir",
+    "yc-token": "node -e \"const yc = require('./yc-token'); yc.getIamTokenFromCli().then(t => console.log(t));\"",
+    "yc-check": "node -e \"const yc = require('./yc-token'); yc.checkYcCli().then(c => console.log(JSON.stringify(c, null, 2)));\""
   },
   "keywords": ["quiz", "feedback", "electron"],
   "author": "",
