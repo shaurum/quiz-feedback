@@ -1,16 +1,20 @@
 {
   "name": "quiz-feedback-app",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Приложение для обработки форм обратной связи Квиз, плиз!",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --mac",
+    "build": "node scripts/prepare-build.js && electron-builder --mac",
     "pack": "electron-builder --dir",
     "yc-token": "node -e \"const yc = require('./yc-token'); yc.getIamTokenFromCli().then(t => console.log(t));\"",
     "yc-check": "node -e \"const yc = require('./yc-token'); yc.checkYcCli().then(c => console.log(JSON.stringify(c, null, 2)));\""
   },
-  "keywords": ["quiz", "feedback", "electron"],
+  "keywords": [
+    "quiz",
+    "feedback",
+    "electron"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {
@@ -18,15 +22,23 @@
     "electron-builder": "^24.9.1"
   },
   "dependencies": {
-    "tesseract.js": "^5.0.4",
+    "dotenv": "^17.3.1",
     "googleapis": "^131.0.0",
-    "sharp": "^0.33.2"
+    "sharp": "^0.33.2",
+    "tesseract.js": "^5.0.4"
   },
   "build": {
     "appId": "com.quizfeedback.app",
     "mac": {
       "category": "public.app-category.utilities",
-      "target": "dmg"
-    }
+      "target": "dmg",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "extraResources": [
+      "build/.env"
+    ]
   }
 }

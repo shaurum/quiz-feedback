@@ -156,6 +156,22 @@
       min-height: 100px;
     }
 
+    .form-group select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+      background: white;
+      cursor: pointer;
+    }
+
+    .form-group select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
     .rating-group {
       background: #f8f9ff;
       padding: 15px;
@@ -432,10 +448,39 @@
       background: #667eea;
       color: white;
     }
+
+    .quota-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.3s;
+    }
+
+    .quota-item:hover {
+      background: #e8eaff;
+    }
+
+    .status-icon {
+      font-weight: bold;
+      font-size: 0.75rem;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: #e0e0e0;
+    }
   </style>
 </head>
 <body>
   <div class="container">
+    <!-- Уведомление о VPN -->
+    <div id="vpnNotice" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 8px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 0.85rem; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; gap: 12px; position: relative;">
+      <span style="opacity: 0.9;">🔒 Для работы в РФ необходим VPN</span>
+      <span style="margin: 0 8px; opacity: 0.6;">•</span>
+      <span style="opacity: 0.7;">Рекомендуем: <strong style="font-weight: 600;">VLEES</strong></span>
+      <button id="closeVpnNotice" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1; padding: 0; display: flex; align-items: center; justify-content: center;" title="Закрыть">×</button>
+    </div>
+
     <header>
       <div class="logo-container">
         <svg version="1.0" xmlns="http://www.w3.org/2000/svg"
@@ -553,6 +598,16 @@
     <div class="panel queue-panel" id="queuePanel">
       <h2>📋 Очередь обработки</h2>
       <p style="color: #666; font-size: 0.9rem;">Перетащите несколько изображений или выберите файлы для пакетной обработки</p>
+      
+      <!-- Индикатор статуса моделей -->
+      <div id="quotaStatus" style="background: #f8f9ff; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem;">
+        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+          <span class="quota-item" data-model="gemini-2.5-flash"><span class="status-icon">OK</span> Gemini 2.5 Flash</span>
+          <span class="quota-item" data-model="gemini-2.5-flash-lite"><span class="status-icon">OK</span> Gemini 2.5 Flash Lite</span>
+          <span class="quota-item" data-model="gemini-3-flash-preview"><span class="status-icon">OK</span> Gemini 3 Flash</span>
+        </div>
+      </div>
+      
       <ul class="queue-list" id="queueList"></ul>
       <button class="btn" id="processAllBtn" style="display: none;">🚀 Обработать все</button>
     </div>
@@ -661,7 +716,6 @@
       <table class="history-table" id="historyTable">
         <thead>
           <tr>
-            <th>Дата/Время</th>
             <th>Игра</th>
             <th>Команда</th>
             <th>Сложность</th>

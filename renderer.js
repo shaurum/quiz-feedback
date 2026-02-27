@@ -13,6 +13,23 @@ const feedbackForm = document.getElementById('feedbackForm');
 const queuePanel = document.getElementById('queuePanel');
 const queueList = document.getElementById('queueList');
 const processAllBtn = document.getElementById('processAllBtn');
+const quotaStatus = document.getElementById('quotaStatus');
+
+// Доступные модели для переключения
+const GEMINI_MODELS = [
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-3-flash-preview'
+];
+
+// Статус квот для каждой модели
+let quotaStatusMap = {
+  'gemini-2.5-flash': { available: true, error: null },
+  'gemini-2.5-flash-lite': { available: true, error: null },
+  'gemini-3-flash-preview': { available: true, error: null }
+};
+
+let currentModelIndex = 0;
 
 // Поля формы
 const gameNameInput = document.getElementById('gameName');
@@ -48,6 +65,7 @@ function init() {
   setupEventListeners();
   updateHistoryTable();
   loadQueueFromStorage();
+  updateQuotaStatusUI();
 }
 
 function setupEventListeners() {
@@ -79,6 +97,20 @@ function setupEventListeners() {
       ratingValues[key].textContent = e.target.value;
     });
   });
+
+  // Закрытие уведомления о VPN
+  const closeVpnBtn = document.getElementById('closeVpnNotice');
+  const vpnNotice = document.getElementById('vpnNotice');
+  if (closeVpnBtn && vpnNotice) {
+    // Проверяем, было ли уже закрыто
+    if (localStorage.getItem('vpnNoticeClosed') === 'true') {
+      vpnNotice.style.display = 'none';
+    }
+    closeVpnBtn.addEventListener('click', () => {
+      vpnNotice.style.display = 'none';
+      localStorage.setItem('vpnNoticeClosed', 'true');
+    });
+  }
 
   // Прогресс OCR от главного процесса
   ipcRenderer.on('ocr-progress', (event, message) => {
@@ -141,7 +173,7 @@ function addFilesToQueue(files) {
 
 function renderQueue() {
   queueList.innerHTML = '';
-  
+
   imageQueue.forEach((item, index) => {
     const li = document.createElement('li');
     li.className = `queue-item ${item.status}`;
@@ -245,25 +277,68 @@ async function processQueueItem(index) {
   item.status = 'processing';
   renderQueue();
 
-  showStatus('Обработка через Google Gemini...', 'loading');
+  // Пытаемся обработать с перебором моделей при ошибке квоты
+  let result = null;
+  let lastError = null;
+  let modelIndex = currentModelIndex;
+  let attemptedModels = 0;
+  
+  while (attemptedModels < GEMINI_MODELS.length) {
+    const model = GEMINI_MODELS[modelIndex];
+    const modelName = model.replace('gemini-', '').replace('preview', 'Preview').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    showStatus(`Обработка через ${modelName}...`, 'loading');
 
-  try {
-    const result = await recognizeText(item.path || item.file);
+    try {
+      result = await recognizeText(item.path || item.file, model);
 
-    item.result = result;
-    item.status = result.success ? 'completed' : 'error';
-
-    if (result.success) {
-      fillFormWithData(result);
-      formSection.classList.add('active');
-      showStatus('✅ Распознавание завершено! Проверьте данные и отправьте форму.', 'success');
-    } else {
-      showStatus('Ошибка распознавания: ' + (result.error || 'Неизвестная ошибка'), 'error');
+      if (result.success) {
+        // Успех - обновляем статус и переключаем модель для следующего
+        quotaStatusMap[model] = { available: true, error: null };
+        currentModelIndex = (modelIndex + 1) % GEMINI_MODELS.length;
+        updateQuotaStatusUI();
+        break;
+      } else if (result.error && (result.error.includes('Quota exceeded') || result.error.includes('API key not valid'))) {
+        // Превышение квоты - помечаем модель и пробуем следующую
+        quotaStatusMap[model] = { available: false, error: result.error };
+        lastError = result.error;
+        modelIndex = (modelIndex + 1) % GEMINI_MODELS.length;
+        attemptedModels++;
+        updateQuotaStatusUI();
+        showStatus(`Квота превышена, пробуем другую модель...`, 'info');
+        continue;
+      } else {
+        // Другая ошибка
+        lastError = result.error;
+        break;
+      }
+    } catch (error) {
+      lastError = error.message;
+      // Если ошибка квоты - пробуем следующую модель
+      if (error.message.includes('Quota exceeded') || error.message.includes('API key not valid')) {
+        quotaStatusMap[model] = { available: false, error: error.message };
+        modelIndex = (modelIndex + 1) % GEMINI_MODELS.length;
+        attemptedModels++;
+        updateQuotaStatusUI();
+        showStatus(`Квота превышена, пробуем другую модель...`, 'info');
+        continue;
+      }
+      break;
     }
-  } catch (error) {
-    item.status = 'error';
-    item.result = { success: false, error: error.message };
-    showStatus('Ошибка распознавания: ' + error.message, 'error');
+  }
+
+  if (!result) {
+    result = { success: false, error: lastError || 'Неизвестная ошибка' };
+  }
+
+  item.result = result;
+  item.status = result.success ? 'completed' : 'error';
+
+  if (result.success) {
+    fillFormWithData(result);
+    formSection.classList.add('active');
+    showStatus('✅ Распознавание завершено! Проверьте данные и отправьте форму.', 'success');
+  } else {
+    showStatus('Ошибка распознавания: ' + (result.error || 'Неизвестная ошибка'), 'error');
   }
 
   saveQueueToStorage();
@@ -299,11 +374,11 @@ function fillFormWithData(result) {
   });
 }
 
-async function recognizeText(imagePath) {
+async function recognizeText(imagePath, model) {
   showStatus('Отправка изображения Google Gemini...', 'loading');
 
   try {
-    const result = await ipcRenderer.invoke('ocr-recognize', imagePath);
+    const result = await ipcRenderer.invoke('ocr-recognize', imagePath, model);
     console.log('Результат распознавания:', result);
     return result;
   } catch (error) {
@@ -316,7 +391,6 @@ async function handleSubmit(e) {
   e.preventDefault();
 
   const data = {
-    timestamp: new Date().toISOString(),
     gameName: gameNameInput.value.trim(),
     teamName: teamNameInput.value.trim(),
     difficulty: parseInt(ratingSliders.difficulty.value),
@@ -353,7 +427,7 @@ async function handleSubmit(e) {
 }
 
 async function sendToGoogleSheets(data) {
-  const scriptUrl = 'https://script.google.com/macros/s/AKfycbzWP3beTSPBZxfcPuAg--ZNsQJHBn73QyDE6hEW8ZQzY476Glrms_UiWeJALEhuS5WwWQ/exec';
+  const scriptUrl = process.env.GOOGLE_APPS_SCRIPT_URL || 'https://script.google.com/macros/s/YOUR_GOOGLE_APPS_SCRIPT/exec';
 
   if (!scriptUrl || scriptUrl.includes('YOUR_GOOGLE_APPS_SCRIPT')) {
     saveLocally(data);
@@ -366,10 +440,7 @@ async function sendToGoogleSheets(data) {
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      ...data,
-      timestamp: new Date().toLocaleString('ru-RU')
-    })
+    body: JSON.stringify(data)
   });
 
   return { success: true };
@@ -398,7 +469,6 @@ function updateHistoryTable() {
     const row = document.createElement('tr');
     const commentDisplay = item.comment ? (item.comment.length > 30 ? item.comment.substring(0, 30) + '...' : item.comment) : '-';
     row.innerHTML = `
-      <td>${new Date(item.timestamp).toLocaleString('ru-RU')}</td>
       <td>${item.gameName}</td>
       <td>${item.teamName || '-'}</td>
       <td>${item.difficulty}</td>
@@ -435,6 +505,26 @@ function showStatus(message, type) {
   statusMessage.textContent = message;
   statusMessage.className = 'status ' + type;
   statusMessage.classList.remove('hidden');
+}
+
+// Обновление индикатора статуса квот
+function updateQuotaStatusUI() {
+  const items = quotaStatus.querySelectorAll('.quota-item');
+  items.forEach(item => {
+    const model = item.dataset.model;
+    const status = quotaStatusMap[model];
+    const iconEl = item.querySelector('.status-icon');
+    
+    if (iconEl) {
+      if (status.available) {
+        iconEl.textContent = 'OK';
+        iconEl.style.color = '#4caf50';
+      } else {
+        iconEl.textContent = 'LIMIT';
+        iconEl.style.color = '#f44336';
+      }
+    }
+  });
 }
 
 // Очередь в localStorage

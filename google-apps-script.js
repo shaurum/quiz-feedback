@@ -6,17 +6,26 @@ const SHEET_ID = '1Q7uWL-Dbr1w6szky-ATmDa6yPofzGclbP8aAIYIdYWU';
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
-    
+
     // Открываем таблицу
     const ss = SpreadsheetApp.openById(SHEET_ID);
     const sheet = ss.getActiveSheet();
-    
-    // Проверяем, есть ли заголовок
+
+    // Проверяем заголовок
     const lastRow = sheet.getLastRow();
-    if (lastRow === 0) {
-      // Создаем заголовок
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    
+    // Если заголовок содержит "Дата/Время" - удаляем первый столбец
+    if (headers[0] === 'Дата/Время' || headers[0] === 'Дата распознавания') {
+      sheet.deleteColumn(1);
+    }
+    
+    // Проверяем, есть ли правильный заголовок
+    const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    if (currentHeaders[0] !== 'Название игры' || lastRow === 0) {
+      // Очищаем и создаем правильный заголовок
+      sheet.clear();
       sheet.appendRow([
-        'Дата/Время',
         'Название игры',
         'Название команды',
         'Сложность вопросов',
@@ -27,18 +36,17 @@ function doPost(e) {
         'Общее впечатление',
         'Комментарий'
       ]);
-      
+
       // Форматируем заголовок
-      const headerRange = sheet.getRange(1, 1, 1, 11);
+      const headerRange = sheet.getRange(1, 1, 1, 9);
       headerRange.setBackground('#4285F4');
       headerRange.setFontColor('#FFFFFF');
       headerRange.setFontWeight('bold');
       headerRange.setHorizontalAlignment('center');
     }
-    
+
     // Добавляем новую строку
     sheet.appendRow([
-      data.timestamp || new Date().toLocaleString('ru-RU'),
       data.gameName || '',
       data.teamName || '',
       data.difficulty || 0,
@@ -49,10 +57,10 @@ function doPost(e) {
       data.overall || 0,
       data.comment || ''
     ]);
-    
+
     // Форматируем новую строку
     const newRow = sheet.getLastRow();
-    const dataRange = sheet.getRange(newRow, 1, 1, 10);
+    const dataRange = sheet.getRange(newRow, 1, 1, 9);
     
     // Чередование цветов строк
     if (newRow % 2 === 0) {

@@ -2,13 +2,17 @@ const { ipcMain } = require('electron');
 const fs = require('fs');
 const https = require('https');
 
-// Google Gemini API ключ из .env или по умолчанию
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyA5HBNF2eNrZgmFvPkqLcYFagr43F_uk0k';
+// Google Gemini API ключ из .env
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+if (!GEMINI_API_KEY) {
+  console.error('⚠️ GEMINI_API_KEY не найден в .env файле');
+}
 
 /**
  * Распознавание через Google Gemini
  */
-async function recognizeWithGemini(imagePath, event) {
+async function recognizeWithGemini(imagePath, event, model = 'gemini-2.5-flash') {
   if (event) {
     event.sender.send('ocr-progress', { status: 'sending', progress: 0.2 });
   }
@@ -42,7 +46,7 @@ async function recognizeWithGemini(imagePath, event) {
     const options = {
       hostname: 'generativelanguage.googleapis.com',
       port: 443,
-      path: `/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      path: `/v1beta/models/${model}:generateContent?key=${GEMINI_API_KEY}`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -129,15 +133,15 @@ async function recognizeWithGemini(imagePath, event) {
 
 function setupOCRHandlers() {
   // OCR через Google Gemini API
-  ipcMain.handle('ocr-gemini', async (event, imagePath) => {
+  ipcMain.handle('ocr-gemini', async (event, imagePath, model = 'gemini-2.5-flash') => {
     try {
-      return await recognizeWithGemini(imagePath, event);
+      return await recognizeWithGemini(imagePath, event, model);
     } catch (error) {
       console.error('Gemini OCR ошибка:', error);
-      
+
       // Проверка на ошибку геолокации
       const errorMessage = error.message.toLowerCase();
-      if (errorMessage.includes('user location is not supported') || 
+      if (errorMessage.includes('user location is not supported') ||
           errorMessage.includes('location is not supported')) {
         return {
           success: false,
@@ -147,7 +151,7 @@ function setupOCRHandlers() {
           ratings: {}
         };
       }
-      
+
       return {
         success: false,
         error: error.message,
@@ -159,14 +163,14 @@ function setupOCRHandlers() {
   });
 
   // Универсальный обработчик
-  ipcMain.handle('ocr-recognize', async (event, imagePath, provider = 'gemini') => {
+  ipcMain.handle('ocr-recognize', async (event, imagePath, model = 'gemini-2.5-flash') => {
     try {
-      return await recognizeWithGemini(imagePath, event);
+      return await recognizeWithGemini(imagePath, event, model);
     } catch (error) {
       console.error('OCR ошибка:', error);
-      
+
       const errorMessage = error.message.toLowerCase();
-      if (errorMessage.includes('user location is not supported') || 
+      if (errorMessage.includes('user location is not supported') ||
           errorMessage.includes('location is not supported')) {
         return {
           success: false,
@@ -176,7 +180,7 @@ function setupOCRHandlers() {
           ratings: {}
         };
       }
-      
+
       return {
         success: false,
         error: error.message,

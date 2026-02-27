@@ -4,6 +4,10 @@ node_modules/
 # Build output
 dist/
 
+# Build resources (except .env)
+build/
+!build/.env
+
 # macOS
 .DS_Store
 

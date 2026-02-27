@@ -1,6 +1,18 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
+
+// Загружаем .env из корня проекта (для разработки) или из ресурсов (для сборки)
+const envPath = process.env.NODE_ENV === 'development' || !app.isPackaged
+  ? path.join(__dirname, '.env')
+  : path.join(process.resourcesPath, 'build', '.env');
+require('dotenv').config({ path: envPath });
+
+// Для отладки
+console.log('ENV Path:', envPath);
+console.log('Is Packaged:', app.isPackaged);
+console.log('Resources Path:', process.resourcesPath);
+
 const { setupOCRHandlers } = require('./ocr-handler');
 
 let mainWindow;
