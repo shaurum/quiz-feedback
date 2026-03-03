@@ -335,14 +335,14 @@ async function processQueueItem(index) {
         currentModelIndex = (modelIndex + 1) % GEMINI_MODELS.length;
         updateQuotaStatusUI();
         break;
-      } else if (result.error && (result.error.includes('Quota exceeded') || result.error.includes('API key not valid'))) {
-        // Превышение квоты - помечаем модель и пробуем следующую
+      } else if (result.error && (result.error.includes('Quota exceeded') || result.error.includes('API key not valid') || result.error.includes('high demand'))) {
+        // Превышение квоты или высокая нагрузка - помечаем модель и пробуем следующую
         quotaStatusMap[model] = { available: false, error: result.error };
         lastError = result.error;
         modelIndex = (modelIndex + 1) % GEMINI_MODELS.length;
         attemptedModels++;
         updateQuotaStatusUI();
-        showStatus(`Квота превышена, пробуем другую модель...`, 'info');
+        showStatus(`Модель недоступна, пробуем другую...`, 'info');
         continue;
       } else {
         // Другая ошибка
@@ -351,13 +351,13 @@ async function processQueueItem(index) {
       }
     } catch (error) {
       lastError = error.message;
-      // Если ошибка квоты - пробуем следующую модель
-      if (error.message.includes('Quota exceeded') || error.message.includes('API key not valid')) {
+      // Если ошибка квоты или высокой нагрузки - пробуем следующую модель
+      if (error.message.includes('Quota exceeded') || error.message.includes('API key not valid') || error.message.includes('high demand')) {
         quotaStatusMap[model] = { available: false, error: error.message };
         modelIndex = (modelIndex + 1) % GEMINI_MODELS.length;
         attemptedModels++;
         updateQuotaStatusUI();
-        showStatus(`Квота превышена, пробуем другую модель...`, 'info');
+        showStatus(`Модель недоступна, пробуем другую...`, 'info');
         continue;
       }
       break;
@@ -666,14 +666,16 @@ function updateQuotaStatusUI() {
     const model = item.dataset.model;
     const status = quotaStatusMap[model];
     const iconEl = item.querySelector('.status-icon');
-    
+
     if (iconEl) {
       if (status.available) {
-        iconEl.textContent = 'OK';
+        iconEl.textContent = '✓';
         iconEl.style.color = '#4caf50';
+        iconEl.title = 'Доступна';
       } else {
-        iconEl.textContent = 'LIMIT';
+        iconEl.textContent = '!';
         iconEl.style.color = '#f44336';
+        iconEl.title = 'Высокая нагрузка или квота превышена';
       }
     }
   });

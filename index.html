@@ -621,10 +621,17 @@
 
     .status-icon {
       font-weight: bold;
-      font-size: 0.75rem;
-      padding: 2px 6px;
-      border-radius: 3px;
-      background: #e0e0e0;
+      font-size: 0.85rem;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: #e8f5e9;
+      min-width: 24px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .quota-item:hover .status-icon {
+      transform: scale(1.1);
     }
   </style>
 </head>
@@ -759,9 +766,9 @@
       <!-- Индикатор статуса моделей -->
       <div id="quotaStatus" style="background: #f8f9ff; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; font-size: 0.85rem;">
         <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-          <span class="quota-item" data-model="gemini-2.5-flash"><span class="status-icon">OK</span> Gemini 2.5 Flash</span>
-          <span class="quota-item" data-model="gemini-2.5-flash-lite"><span class="status-icon">OK</span> Gemini 2.5 Flash Lite</span>
-          <span class="quota-item" data-model="gemini-3-flash-preview"><span class="status-icon">OK</span> Gemini 3 Flash</span>
+          <span class="quota-item" data-model="gemini-2.5-flash"><span class="status-icon">✓</span> Gemini 2.5 Flash</span>
+          <span class="quota-item" data-model="gemini-2.5-flash-lite"><span class="status-icon">✓</span> Gemini 2.5 Flash Lite</span>
+          <span class="quota-item" data-model="gemini-3-flash-preview"><span class="status-icon">✓</span> Gemini 3 Flash</span>
         </div>
       </div>
       
