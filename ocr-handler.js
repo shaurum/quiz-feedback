@@ -71,8 +71,17 @@ async function recognizeWithGemini(imagePath, event, model = 'gemini-2.5-flash')
       });
     });
 
-    req.on('error', reject);
-    req.setTimeout(120000, () => req.destroy(new Error('Timeout')));
+    req.on('error', (err) => {
+      // Проверка на ошибку подключения к интернету
+      if (err.code === 'ENOTFOUND' || err.code === 'ECONNREFUSED' || err.code === 'ENETUNREACH') {
+        reject(new Error('🌐 Нет подключения к интернету\n\nПроверьте соединение и попробуйте снова ☕'));
+      } else if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKETTIMEDOUT') {
+        reject(new Error('🌐 Превышено время ожидания ответа от сервера\n\nПроверьте подключение к интернету ☕'));
+      } else {
+        reject(err);
+      }
+    });
+    req.setTimeout(120000, () => req.destroy(new Error('🌐 Превышено время ожидания ответа от сервера\n\nПроверьте подключение к интернету ☕')));
     req.write(dataBuffer);
     req.end();
   });
@@ -146,6 +155,21 @@ function setupOCRHandlers() {
         return {
           success: false,
           error: '🌴 User location is not supported for the API use.\n\n🏖️ Едь в тёплые страны или включи VPN!\n\n✈️ А пока можно отдохнуть и выпить кофе ☕',
+          team_name: '',
+          comment: '',
+          ratings: {}
+        };
+      }
+
+      // Проверка на отсутствие подключения к интернету
+      if (errorMessage.includes('enotfound') ||
+          errorMessage.includes('getaddrinfo') ||
+          errorMessage.includes('network') ||
+          errorMessage.includes('econnrefused') ||
+          errorMessage.includes('timeout')) {
+        return {
+          success: false,
+          error: '🌐 Нет подключения к интернету\n\nПроверьте соединение и попробуйте снова ☕',
           team_name: '',
           comment: '',
           ratings: {}

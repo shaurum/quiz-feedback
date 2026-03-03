@@ -35,7 +35,8 @@ def recognize_with_gemini(image_path):
     """Распознавание изображения через Google Gemini API"""
     try:
         import requests
-        
+        import urllib3
+
         base64_image = encode_image(image_path)
 
         prompt = """Ты - система распознавания анкет обратной связи "Квиз, плиз!".
@@ -155,6 +156,12 @@ def recognize_with_gemini(image_path):
     except ImportError as e:
         print(f"requests module not installed: {e}", file=sys.stderr)
         raise Exception('requests module not installed')
+    except requests.exceptions.ConnectionError as e:
+        print(f"Connection error: {e}", file=sys.stderr)
+        raise Exception('🌐 Нет подключения к интернету\n\nПроверьте соединение и попробуйте снова ☕')
+    except requests.exceptions.Timeout as e:
+        print(f"Timeout error: {e}", file=sys.stderr)
+        raise Exception('🌐 Превышено время ожидания ответа от сервера\n\nПроверьте подключение к интернету ☕')
     except Exception as e:
         print(f"Gemini error: {e}", file=sys.stderr)
         raise e
