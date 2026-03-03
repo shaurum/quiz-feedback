@@ -18,6 +18,7 @@ const feedbackForm = document.getElementById('feedbackForm');
 const queuePanel = document.getElementById('queuePanel');
 const queueList = document.getElementById('queueList');
 const processAllBtn = document.getElementById('processAllBtn');
+const clearAllBtn = document.getElementById('clearAllBtn');
 const quotaStatus = document.getElementById('quotaStatus');
 
 // Доступные модели для переключения
@@ -95,6 +96,7 @@ function setupEventListeners() {
 
   // Обработка всех
   processAllBtn.addEventListener('click', processAllQueue);
+  clearAllBtn.addEventListener('click', clearAllQueue);
 
   // Слайдеры
   Object.keys(ratingSliders).forEach(key => {
@@ -219,10 +221,12 @@ function renderQueue() {
     
     queueList.appendChild(li);
   });
-  
-  // Показываем кнопку обработки если есть необработанные
+
+  // Показываем кнопки если есть элементы в очереди
+  const hasItems = imageQueue.length > 0;
   const hasPending = imageQueue.some(item => item.status === 'pending');
   processAllBtn.style.display = hasPending ? 'block' : 'none';
+  clearAllBtn.style.display = hasItems ? 'block' : 'none';
 }
 
 function getStatusText(status) {
@@ -280,6 +284,20 @@ function removeFromQueue(index) {
   
   if (imageQueue.length === 0) {
     queuePanel.classList.remove('active');
+  }
+}
+
+function clearAllQueue() {
+  if (imageQueue.length === 0) return;
+  
+  if (confirm('Вы уверены, что хотите очистить всю очередь?')) {
+    imageQueue = [];
+    currentImageIndex = -1;
+    resetForm();
+    saveQueueToStorage();
+    renderQueue();
+    queuePanel.classList.remove('active');
+    showStatus('Очередь очищена', 'success');
   }
 }
 
@@ -689,6 +707,7 @@ function loadQueueFromStorage() {
 // Делаем функции доступными глобально
 window.viewImage = viewImage;
 window.removeFromQueue = removeFromQueue;
+window.clearAllQueue = clearAllQueue;
 window.openFullscreen = openFullscreen;
 
 // Запуск

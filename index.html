@@ -470,22 +470,62 @@
     .queue-item {
       display: flex;
       align-items: center;
-      padding: 12px;
+      padding: 14px 14px 14px 40px;
       border: 2px solid #e0e0e0;
-      border-radius: 8px;
+      border-radius: 12px;
       margin-bottom: 10px;
       cursor: pointer;
-      transition: all 0.3s;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      background: white;
+    }
+
+    .queue-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 4px;
+      height: 0;
+      background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+      border-radius: 0 8px 8px 0;
+      transition: height 0.3s ease;
     }
 
     .queue-item:hover {
       border-color: #667eea;
-      background: #f8f9ff;
+      background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
+      transform: translateX(4px);
+    }
+
+    .queue-item:hover::before {
+      height: 60%;
     }
 
     .queue-item.active {
-      border-color: #667eea;
-      background: #f0f2ff;
+      border-color: transparent;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      box-shadow: 0 8px 32px rgba(102, 126, 234, 0.4);
+      transform: scale(1.02) translateX(4px);
+    }
+
+    .queue-item.active::before {
+      height: 100%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 100%);
+    }
+
+    .queue-item.active .queue-item-name,
+    .queue-item.active .queue-item-status {
+      color: white;
+    }
+
+    .queue-item.active .queue-item-name {
+      font-weight: 700;
+    }
+
+    .queue-item.active .queue-item-thumbnail {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
     }
 
     .queue-item.processing {
@@ -493,14 +533,26 @@
       background: #fff8e1;
     }
 
+    .queue-item.processing.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
     .queue-item.completed {
       border-color: #4caf50;
       background: #e8f5e9;
     }
 
+    .queue-item.completed.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
     .queue-item.error {
       border-color: #f44336;
       background: #ffebee;
+    }
+
+    .queue-item.error.active {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     }
 
     .queue-item-thumbnail {
@@ -714,7 +766,10 @@
       </div>
       
       <ul class="queue-list" id="queueList"></ul>
-      <button class="btn" id="processAllBtn" style="display: none;">🚀 Обработать все</button>
+      <div style="display: flex; gap: 10px; margin-top: 15px;">
+        <button class="btn" id="processAllBtn" style="display: none; flex: 1;">🚀 Обработать все</button>
+        <button class="btn btn-secondary" id="clearAllBtn" style="display: none; flex: 1;">🗑️ Очистить все</button>
+      </div>
     </div>
 
     <div class="main-content">
