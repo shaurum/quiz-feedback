@@ -7,6 +7,11 @@ const dropZone = document.getElementById('dropZone');
 const previewContainer = document.getElementById('previewContainer');
 const fileInput = document.getElementById('fileInput');
 const previewImage = document.getElementById('previewImage');
+const expandBtn = document.getElementById('expandBtn');
+const fullscreenModal = document.getElementById('fullscreenModal');
+const fullscreenImage = document.getElementById('fullscreenImage');
+const closeFullscreen = document.getElementById('closeFullscreen');
+const zoomIndicator = document.getElementById('zoomIndicator');
 const formSection = document.getElementById('formSection');
 const statusMessage = document.getElementById('statusMessage');
 const feedbackForm = document.getElementById('feedbackForm');
@@ -111,6 +116,21 @@ function setupEventListeners() {
       localStorage.setItem('vpnNoticeClosed', 'true');
     });
   }
+
+  // Полноэкранный просмотр
+  expandBtn.addEventListener('click', openFullscreen);
+  previewImage.addEventListener('click', openFullscreen);
+  closeFullscreen.addEventListener('click', closeFullscreenModal);
+  fullscreenModal.addEventListener('click', (e) => {
+    if (e.target === fullscreenModal) {
+      closeFullscreenModal();
+    }
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && fullscreenModal.classList.contains('active')) {
+      closeFullscreenModal();
+    }
+  });
 
   // Прогресс OCR от главного процесса
   ipcRenderer.on('ocr-progress', (event, message) => {
@@ -507,6 +527,120 @@ function showStatus(message, type) {
   statusMessage.classList.remove('hidden');
 }
 
+// Полноэкранный просмотр изображения
+let currentZoom = 1;
+let currentPanX = 0;
+let currentPanY = 0;
+let isDragging = false;
+let startPanX = 0;
+let startPanY = 0;
+let startX = 0;
+let startY = 0;
+
+function openFullscreen() {
+  if (previewImage.src && previewImage.src !== window.location.href) {
+    fullscreenImage.src = previewImage.src;
+    fullscreenModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+    currentZoom = 1;
+    currentPanX = 0;
+    currentPanY = 0;
+    updateImageTransform();
+  }
+}
+
+function closeFullscreenModal() {
+  fullscreenModal.classList.remove('active');
+  document.body.style.overflow = '';
+  currentZoom = 1;
+  currentPanX = 0;
+  currentPanY = 0;
+}
+
+function updateImageTransform() {
+  fullscreenImage.style.transform = `translate(${currentPanX}px, ${currentPanY}px) scale(${currentZoom})`;
+  
+  // Показываем индикатор зума
+  zoomIndicator.textContent = `${Math.round(currentZoom * 100)}%`;
+  zoomIndicator.style.opacity = '1';
+  
+  // Скрываем индикатор через 1 секунду
+  clearTimeout(window.zoomIndicatorTimeout);
+  window.zoomIndicatorTimeout = setTimeout(() => {
+    zoomIndicator.style.opacity = '0';
+  }, 1000);
+}
+
+// Зум колёсиком мыши
+fullscreenModal.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  
+  const zoomSpeed = 0.001;
+  const delta = -e.deltaY * zoomSpeed;
+  const newZoom = Math.min(Math.max(currentZoom + delta, 1), 5);
+  
+  if (newZoom !== currentZoom) {
+    currentZoom = newZoom;
+    updateImageTransform();
+  }
+}, { passive: false });
+
+// Перетаскивание изображения
+fullscreenImage.addEventListener('mousedown', (e) => {
+  if (currentZoom > 1) {
+    isDragging = true;
+    startX = e.clientX - currentPanX;
+    startY = e.clientY - currentPanY;
+    fullscreenImage.classList.add('grabbing');
+  }
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (isDragging && currentZoom > 1) {
+    e.preventDefault();
+    currentPanX = e.clientX - startX;
+    currentPanY = e.clientY - startY;
+    updateImageTransform();
+  }
+});
+
+document.addEventListener('mouseup', () => {
+  if (isDragging) {
+    isDragging = false;
+    fullscreenImage.classList.remove('grabbing');
+  }
+});
+
+// Зум жестом (trackpad)
+let initialPinchDistance = null;
+let initialZoom = 1;
+
+fullscreenModal.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 2) {
+    initialPinchDistance = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    initialZoom = currentZoom;
+  }
+});
+
+fullscreenModal.addEventListener('touchmove', (e) => {
+  if (e.touches.length === 2 && initialPinchDistance) {
+    const currentDistance = Math.hypot(
+      e.touches[0].clientX - e.touches[1].clientX,
+      e.touches[0].clientY - e.touches[1].clientY
+    );
+    const newZoom = Math.min(Math.max(initialZoom * (currentDistance / initialPinchDistance), 1), 5);
+    currentZoom = newZoom;
+    updateImageTransform();
+  }
+});
+
+fullscreenModal.addEventListener('touchend', () => {
+  initialPinchDistance = null;
+});
+
 // Обновление индикатора статуса квот
 function updateQuotaStatusUI() {
   const items = quotaStatus.querySelectorAll('.quota-item');
@@ -555,6 +689,7 @@ function loadQueueFromStorage() {
 // Делаем функции доступными глобально
 window.viewImage = viewImage;
 window.removeFromQueue = removeFromQueue;
+window.openFullscreen = openFullscreen;
 
 // Запуск
 init();
