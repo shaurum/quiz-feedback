@@ -6,7 +6,7 @@ const fs = require('fs');
 const envPath = process.env.NODE_ENV === 'development' || !app.isPackaged
   ? path.join(__dirname, '.env')
   : path.join(process.resourcesPath, 'build', '.env');
-require('dotenv').config({ path: envPath });
+require('dotenv').config({ path: envPath, override: true });
 
 // Для отладки
 console.log('ENV Path:', envPath);

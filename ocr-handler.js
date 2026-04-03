@@ -59,14 +59,30 @@ async function recognizeWithGemini(imagePath, event, model = 'gemini-2.5-flash')
       res.on('data', (chunk) => responseData += chunk);
       res.on('end', () => {
         try {
+          if (!responseData || responseData.trim() === '') {
+            reject(new Error('Пустой ответ от сервера Gemini'));
+            return;
+          }
+          // Проверяем, не пришёл ли HTML вместо JSON
+          if (responseData.trim().startsWith('<') || responseData.includes('<!DOCTYPE')) {
+            reject(new Error('🌴 Gemini API недоступен\n\nВключите VPN с локацией США (Америка) и попробуйте снова ☕'));
+            return;
+          }
           const result = JSON.parse(responseData);
           if (res.statusCode !== 200) {
-            reject(new Error(result.error?.message || `HTTP ${res.statusCode}`));
+            reject(new Error(result.error?.message || `HTTP ${res.statusCode}: ${responseData}`));
           } else {
             resolve(result);
           }
         } catch (e) {
-          reject(new Error('Failed to parse response'));
+          console.error('Ошибка парсинга ответа Gemini:', e.message);
+          console.error('Полученные данные:', responseData.substring(0, 500));
+          // Проверяем, не HTML ли это
+          if (responseData.includes('<') || responseData.includes('DOCTYPE')) {
+            reject(new Error('🌴 Gemini API недоступен\n\nВключите VPN с локацией США (Америка) и попробуйте снова ☕'));
+          } else {
+            reject(new Error(`Ошибка обработки ответа Gemini: ${e.message}`));
+          }
         }
       });
     });

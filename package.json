@@ -1,11 +1,13 @@
 {
   "name": "quiz-feedback-app",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Приложение для обработки форм обратной связи Квиз, плиз!",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "node scripts/prepare-build.js && electron-builder --mac",
+    "build:spb": "node scripts/prepare-build.js .env.spb && electron-builder --mac --config electron-builder.spb.js",
+    "build:msk": "node scripts/prepare-build.js .env.msk && electron-builder --mac --config electron-builder.msk.js",
+    "build:all": "npm run build:spb && npm run build:msk",
     "pack": "electron-builder --dir",
     "yc-token": "node -e \"const yc = require('./yc-token'); yc.getIamTokenFromCli().then(t => console.log(t));\"",
     "yc-check": "node -e \"const yc = require('./yc-token'); yc.checkYcCli().then(c => console.log(JSON.stringify(c, null, 2)));\""
@@ -29,6 +31,7 @@
   },
   "build": {
     "appId": "com.quizfeedback.app",
+    "productName": "Обратная связь КП",
     "mac": {
       "category": "public.app-category.utilities",
       "target": "dmg",

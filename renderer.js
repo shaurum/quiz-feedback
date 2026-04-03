@@ -66,6 +66,9 @@ let imageQueue = [];
 let currentImageIndex = -1;
 let history = JSON.parse(localStorage.getItem('feedbackHistory') || '[]');
 
+// URL Google Apps Script из .env
+const GOOGLE_APPS_SCRIPT_URL = process.env.GOOGLE_APPS_SCRIPT_URL || 'https://script.google.com/macros/s/YOUR_GOOGLE_APPS_SCRIPT/exec';
+
 // Инициализация
 function init() {
   setupEventListeners();
@@ -465,23 +468,30 @@ async function handleSubmit(e) {
 }
 
 async function sendToGoogleSheets(data) {
-  const scriptUrl = process.env.GOOGLE_APPS_SCRIPT_URL || 'https://script.google.com/macros/s/YOUR_GOOGLE_APPS_SCRIPT/exec';
+  const scriptUrl = GOOGLE_APPS_SCRIPT_URL;
 
-  if (!scriptUrl || scriptUrl.includes('YOUR_GOOGLE_APPS_SCRIPT')) {
+  if (!scriptUrl || scriptUrl.includes('YOUR_')) {
     saveLocally(data);
     throw new Error('Необходимо настроить Google Sheets API. См. инструкцию в README.md');
   }
 
-  const response = await fetch(scriptUrl, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(data)
-  });
+  try {
+    await fetch(scriptUrl, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
 
-  return { success: true };
+    // При mode: 'no-cors' ответ всегда opaque — считаем успешным, если не было ошибки
+    return { success: true };
+  } catch (error) {
+    console.error('Ошибка отправки в Google Sheets:', error);
+    saveLocally(data);
+    throw new Error('Ошибка сети при отправке данных. Данные сохранены локально.');
+  }
 }
 
 function saveLocally(data) {

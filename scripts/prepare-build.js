@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-// Копируем .env в папку build/resources перед сборкой
-const sourceEnv = path.join(__dirname, '..', '.env');
+// Определяем какой .env файл использовать (по умолчанию .env)
+const envFileName = process.argv[2] || '.env';
+const sourceEnv = path.join(__dirname, '..', envFileName);
 const destEnv = path.join(__dirname, '..', 'build', '.env');
 
 // Создаём папку build если не существует
@@ -14,7 +15,7 @@ if (!fs.existsSync(buildDir)) {
 // Копируем .env если он существует
 if (fs.existsSync(sourceEnv)) {
   fs.copyFileSync(sourceEnv, destEnv);
-  console.log('✅ .env скопирован в build/');
+  console.log(`✅ ${envFileName} скопирован в build/`);
 } else {
-  console.warn('⚠️ .env не найден! Создайте файл .env с ключами API');
+  console.warn(`⚠️ ${envFileName} не найден! Создайте файл с ключами API`);
 }
