@@ -24,6 +24,20 @@ module.exports = {
   directories: {
     output: 'dist/msk'
   },
+  files: [
+    'main.js',
+    'renderer.js',
+    'ocr-handler.js',
+    'yc-token.js',
+    'config.js',
+    'index.html',
+    'logo.svg',
+    'icon.icns',
+    'scripts/**/*'
+  ],
+  asarUnpack: [
+    '**/*.node'
+  ],
   mac: {
     category: 'public.app-category.utilities',
     target: 'dmg',
